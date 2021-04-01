@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>英雄管理主页</title>
+    <link rel="stylesheet" href="./lib/bootstrap/css/bootstrap.min.css" />
+    <style>
+        .panel {
+            width: 900px;
+            margin: 10px auto;
+        }
+
+        .table img {
+            width: 40px;
+            height: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="panel panel-primary">
+            <!-- Default panel contents -->
+            <div class="panel-heading">英雄列表管理</div>
+            <div class="panel-body">
+                <!-- 存放的搜索区域 -->
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="input-group">
+                            <input type="text" id="hname" class="form-control" placeholder="输入英雄信息..." />
+                            <span class="input-group-btn">
+                                <button class="btn btn-default" id="btn_search" type="button">搜索</button>
+                            </span>
+                        </div>
+                        <!-- /input-group -->
+                    </div>
+                    <!-- /.col-lg-6 -->
+                    <div class="col-lg-3 col-lg-offset-3">
+                        <!-- 添加英雄的按钮 -->
+                        <!-- 
+                            🧨调用模态框的两个属性：
+                            data-toggle="modal"                 🧨 调用切换模态框功能
+                            data-target="#exampleModal"         🧨 要调用哪个模态框
+                        -->
+                        <button data-toggle="modal" data-target="#exampleModal" type="button" class="btn btn-success">
+                            添加英雄
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>编号</th>
+                        <th>英雄名称</th>
+                        <th>英雄性别</th>
+                        <th>头像</th>
+                        <th>操作区</th>
+                    </tr>
+                </thead>
+                <!-- 表格主体 -->
+                <tbody id="tbody">
+                    <!-- tr 是一行内容 -->
+                    <tr>
+                        <td>1</td>
+                        <td>大乔</td>
+                        <td>女</td>
+                        <td><img src="" /></td>
+                        <td>
+                            <button type="button" class="btn btn-warning">上传头像</button>
+                            <button type="button" class="btn btn-danger">删除</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- 上传按钮  display: none; 把按钮隐藏起来，但是点击按钮还是可以实现上传的 -->
+        <input type="file" id="uploadFile" style="display: none" />
+
+        <!-- 🧨模态框的结构 - CV过来的 -->
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="exampleModalLabel">添加英雄</h4>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="form-group">
+                                <label for="recipient-name" class="control-label">英雄名称:</label>
+                                <input type="text" placeholder="请输入英雄名称" class="form-control" id="heroName" />
+                            </div>
+                            <div class="form-group">
+                                <label for="message-text" class="control-label">英雄性别:</label>
+                                <label><input type="radio" checked value="男" name="gender" /> 👦男生</label>
+                                <label><input type="radio" value="女" name="gender" /> 👩‍🦰女生</label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                        <button id="addHeroBtn" type="button" class="btn btn-primary">添加</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🧨 必须先引入 jquery.js 再引入 bootstrap.js -->
+    <script src="./lib/jquery/jquery.min.js"></script>
+    <script src="./lib/bootstrap/js/bootstrap.js"></script>
+    <script>
+        //为ajax请求统一加上token请求头
+        $.ajaxSetup({
+            //在发请求时,带上token
+            headers:{ Authorization:localStorage.getItem('token') },
+        })
+
+        //多次调用获取所有英雄的数据的这个函数,所以封装起来
+        function getHeroList(){
+            $.ajax({
+                url:'http://127.0.0.1:4444/hero/getHeroList',
+                type:'GET',
+                data:{ 
+                    heroName:$('#hname').val().trim(),
+                },
+                dataType:'json',
+                success:(res)=>{
+                    // console.log(res);
+                    //字符串拼接
+                    let htmlStr = '';
+                    res.data.forEach((item)=>{
+                        htmlStr += `
+                        <tr>
+                            <td>${item.id}</td>
+                            <td>${item.name}</td>
+                            <td>${item.gender}</td>
+                            <td><img src="${item.img}" /></td>
+                            <td>
+                                <button data-id="${item.id}" type="button" class="btn btn-warning">上传头像</button>
+                                <button data-id="${item.id}" type="button" class="btn btn-danger">删除</button>
+                            </td>
+                        </tr>
+                        `
+                        //在tbody中自动生成
+                        $('#tbody').html(htmlStr)
+                    })
+                }
+            })
+        }
+        //搜索
+        $('#btn_search').click(function(){
+            getHeroList();
+        })
+        //添加
+        $('#addHeroBtn').click(function(){
+            $.ajax({
+                url:'http://localhost:4444/hero/addHero',
+                type:'post',
+                data:{ 
+                    name:$('#heroName').val().trim(),
+                    gender:$('[name="gender"]:checked').val()   // 用$来获取单选按钮中选中的值
+                },
+                dataType:'json',
+                success:(res)=>{
+                    // console.log(res);
+                    //成功后要隐藏模态框
+                    if(res.code === 200){
+                        $('#exampleModal').modal('hide')
+                        //重新渲染页面
+						getHeroList()
+                    }
+
+                }
+            })
+        })
+        //删除
+        $('#tbody').on('click', '.btn-danger', function (){
+            $.ajax({
+                url:'http://127.0.0.1:4444/hero/delHeroById',
+                type:'GET',
+                data:{ id:$(this).attr('data-id') },
+                dataType:'json',
+                success:(res)=>{
+                    // console.log(res);
+                    if(res.code === 200){
+                        alert(res.msg)
+                        getHeroList();
+                    }
+                }
+            })
+        })
+
+        $(function(){
+            //页面一开就要调用函数,渲染有页面
+            getHeroList();
+
+            let curId = '';
+            //给上传头像 添加事件委托  -- 因为英雄数据是动态生成的,所以要通过委托给上传按钮绑定事件
+            $('#tbody').on('click', '.btn-warning', function () {
+				// console.log('上传头像')
+				// 1. 模拟文件域被点击
+				$('#uploadFile').click()
+
+				// 2. 取出id值,保存一下
+				curId = $(this).attr('data-id')
+				// alert( $(this).attr('data-id') )
+			})
+            // 文件域 用户点了确定
+			// 先做上传，再做更新
+            $('#uploadFile').change(function(){
+                // console.log(1);
+                // this表示当前的文件域
+				// 用户选中的文件在 this.files[0]
+                const file = this.files[0];
+                //如果用户没有选中
+                if(!file){
+                    return
+                }
+                //做文件上传
+                const fd = new FormData();
+                fd.append('file_data',file)
+                fd.append("id",curId)
+                // console.log(1);
+                // $.ajax({
+                //     url:'http://localhost:4444/hero/uploadFile',
+                //     type:'post',
+                //     data:fd,
+                //     contentType:false,
+                //     processData:false,
+                //     success:(res)=>{
+                //         console.log(res);
+                //     }
+                // })
+                $.ajax({
+                    url:'http://localhost:4444/hero/uploadFile',
+                    type:'POST',
+                    data: fd,
+                    processData: false, // 无需 jq 处理数据
+					contentType: false, // 无需 jq 处理内容类型
+                    dataType:'json',
+                    success:(res)=>{
+                        console.log(1);
+                        console.log(res);
+                        if(res.code === 200){
+                            //用户头像地址
+                            const imgUrl = res.src
+
+                            // curId // 英雄id
+							// 再调用接口，修改英雄头像信息
+                            $.ajax({
+								url: 'http://localhost:3000/hero/updateHero',
+								method: 'POST',
+								data: {
+									id: curId,
+									img: imgUrl
+								},
+								success: res => {
+									console.log('更新头像后的结果', res)
+									if (res.code === 200) {
+										getHeroList()
+									}
+								}
+							})
+                        }
+                    }
+                })
+            })
+
+        })
+        //在前端统一处理401错误
+        $(document).ajaxError(function( event, request, settings ){
+            if(request.status === 401){
+                alert('没有权限');
+                // alert(request.responseJSON.msg)
+                location.href = "./login.html";
+                return
+            }
+        })
+    </script>
+</body>
+
+</html>
